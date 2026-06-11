@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ferieplanlegger</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; color: #1a1a1a; min-height: 100vh; }
+  .container { max-width: 720px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+
+  header { margin-bottom: 2rem; }
+  header h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+  header p { font-size: 14px; color: #666; }
+
+  .name-row { display: flex; gap: 8px; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .name-row input { font-size: 14px; padding: 8px 12px; border-radius: 8px; border: 1px solid #ddd; background: #fff; width: 180px; outline: none; }
+  .name-row input:focus { border-color: #378ADD; }
+  .name-row span { font-size: 13px; color: #888; }
+
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 1.5rem; padding: 10px 14px; background: #fff; border-radius: 10px; border: 1px solid #e8e8e8; }
+  .li { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #555; }
+  .ld { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .lbox { width: 13px; height: 13px; border-radius: 3px; border: 2px solid; flex-shrink: 0; }
+
+  .month-nav { display: flex; align-items: center; gap: 10px; margin-bottom: 1rem; }
+  .month-nav button { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 14px; color: #333; }
+  .month-nav button:hover { background: #f0f0f0; }
+  #month-label { font-weight: 600; font-size: 15px; min-width: 140px; text-align: center; }
+
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 1rem; }
+  .dh { font-size: 11px; color: #888; text-align: center; padding: 4px 0; font-weight: 600; }
+  .day { border-radius: 8px; border: 1px solid #e8e8e8; background: #fff; min-height: 58px; padding: 5px 6px; cursor: pointer; transition: border-color .15s; }
+  .day:hover { border-color: #aaa; }
+  .day.empty { background: none; border-color: transparent; cursor: default; pointer-events: none; }
+  .day.past { opacity: .3; cursor: default; pointer-events: none; }
+  .day.today .dnum { color: #185FA5; font-weight: 700; }
+  .day.selected { border: 2px solid #378ADD; background: #E6F1FB; }
+  .day.all-ledig { background: #E1F5EE; border: 2px solid #1D9E75; }
+  .day.all-maybe { background: #FAEEDA; border: 2px solid #EF9F27; }
+  .dnum { font-size: 12px; color: #888; margin-bottom: 3px; }
+  .winner-label { font-size: 9px; font-weight: 600; color: #0F6E56; }
+  .winner-label.maybe { color: #633806; }
+  .dots { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 2px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; }
+
+  .sel-bar { font-size: 13px; color: #185FA5; min-height: 20px; margin-bottom: .75rem; }
+
+  .status-panel { background: #fff; border: 1px solid #ddd; border-radius: 12px; padding: 14px; margin-bottom: 1.5rem; }
+  .status-panel p { font-size: 13px; color: #555; margin-bottom: 10px; }
+  .status-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .sbtn { padding: 7px 16px; font-size: 13px; border-radius: 8px; border: 1px solid #ddd; cursor: pointer; font-weight: 500; }
+  .sbtn.ledig { background: #E1F5EE; color: #0F6E56; border-color: #5DCAA5; }
+  .sbtn.kanskje { background: #FAEEDA; color: #633806; border-color: #EF9F27; }
+  .sbtn.opptatt { background: #FCEBEB; color: #791F1F; border-color: #E24B4A; }
+  .sbtn.avbryt { background: none; color: #888; }
+
+  .comment-field { margin-top: 12px; }
+  .comment-field textarea { width: 100%; font-size: 13px; padding: 8px 10px; border-radius: 8px; border: 1px solid #ddd; font-family: inherit; resize: vertical; min-height: 52px; }
+  .comment-field textarea:focus { outline: none; border-color: #378ADD; }
+  .comment-actions { display: flex; gap: 8px; margin-top: 8px; }
+  .btn-lagre { padding: 6px 16px; font-size: 13px; border-radius: 8px; border: 1px solid #5DCAA5; background: #E1F5EE; color: #0F6E56; cursor: pointer; font-weight: 500; }
+  .btn-avbryt { padding: 6px 16px; font-size: 13px; border-radius: 8px; border: 1px solid #ddd; background: none; color: #888; cursor: pointer; }
+
+  .section-title { font-size: 15px; font-weight: 600; margin-bottom: 10px; }
+
+  .best-days { margin-bottom: 1.5rem; }
+  .best-card { border-radius: 8px; padding: 10px 14px; margin-bottom: 6px; }
+  .best-card.all { background: #E1F5EE; border: 1px solid #5DCAA5; }
+  .best-card.maybe { background: #FAEEDA; border: 1px solid #EF9F27; }
+  .bc-title { font-size: 13px; font-weight: 600; }
+  .bc-title.all { color: #085041; }
+  .bc-title.maybe { color: #633806; }
+  .bc-sub { font-size: 12px; margin-top: 2px; }
+  .bc-sub.all { color: #0F6E56; }
+  .bc-sub.maybe { color: #854F0B; }
+
+  .person-row { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid #eee; }
+  .person-row:last-child { border-bottom: none; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+  .chip { font-size: 11px; padding: 2px 8px; border-radius: 999px; }
+  .chip.ledig { background: #E1F5EE; color: #0F6E56; }
+  .chip.kanskje { background: #FAEEDA; color: #633806; }
+  .chip.opptatt { background: #FCEBEB; color: #791F1F; }
+
+  .live-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #1D9E75; margin-right: 6px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .live-badge { font-size: 12px; color: #0F6E56; display: flex; align-items: center; margin-bottom: 1.5rem; }
+
+  .summary-box { background: #fff; border-radius: 12px; border: 1px solid #e8e8e8; padding: 1rem 1.25rem; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Ferieplanlegger</h1>
+    <p>Marker dagene du kan – se hvem som passer på de samme dagene.</p>
+  </header>
+
+  <div class="name-row">
+    <input type="text" id="nameInput" placeholder="Ditt navn" />
+    <span>← skriv inn, klikk så på dagene</span>
+  </div>
+
+  <div class="live-badge"><span class="live-dot"></span>Oppdaterer i sanntid for alle</div>
+
+  <div class="legend">
+    <div class="li"><div class="ld" style="background:#1D9E75"></div>Ledig</div>
+    <div class="li"><div class="ld" style="background:#EF9F27"></div>Kanskje</div>
+    <div class="li"><div class="ld" style="background:#E24B4A"></div>Opptatt</div>
+    <div class="li"><div class="lbox" style="background:#E1F5EE;border-color:#1D9E75"></div>Alle kan</div>
+    <div class="li"><div class="lbox" style="background:#FAEEDA;border-color:#EF9F27"></div>Alle ledig/kanskje</div>
+  </div>
+
+  <div class="month-nav">
+    <button onclick="changeMonth(-1)">&#8592;</button>
+    <span id="month-label"></span>
+    <button onclick="changeMonth(1)">&#8594;</button>
+  </div>
+
+  <div class="cal-grid" id="calGrid"></div>
+  <div class="sel-bar" id="selBar"></div>
+
+  <div id="statusPanel" style="display:none" class="status-panel">
+    <p id="panelTitle">Hva gjelder for disse dagene?</p>
+    <div class="status-btns">
+      <button class="sbtn ledig" onclick="applyStatus('ledig')">✓ Ledig</button>
+      <button class="sbtn kanskje" onclick="showKommentar()">? Kanskje</button>
+      <button class="sbtn opptatt" onclick="applyStatus('opptatt')">✕ Opptatt</button>
+      <button class="sbtn avbryt" onclick="clearSelection()">Avbryt</button>
+    </div>
+    <div class="comment-field" id="commentField" style="display:none">
+      <textarea id="commentInput" placeholder="Kommentar (valgfritt)…"></textarea>
+      <div class="comment-actions">
+        <button class="btn-lagre" onclick="applyKanskje()">Lagre</button>
+        <button class="btn-avbryt" onclick="hideKommentar()">Avbryt</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="best-days" id="bestDays"></div>
+
+  <div class="summary-box">
+    <p class="section-title">Oversikt</p>
+    <div id="summary"><p style="font-size:13px;color:#888;font-style:italic">Ingen har lagt til tilgjengelighet ennå.</p></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCPCIqxennNpQ7p6wXnJ_fTiZfILBeGiLQ",
+  authDomain: "vbjplanning.firebaseapp.com",
+  projectId: "vbjplanning",
+  storageBucket: "vbjplanning.firebasestorage.app",
+  messagingSenderId: "151787305501",
+  appId: "1:151787305501:web:22b3384ee7d4ce2de324f4",
+  measurementId: "G-ME1G4LHYWF",
+  databaseURL: "https://vbjplanning-default-rtdb.europe-west1.firebasedatabase.app"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const dataRef = ref(db, 'tilgjengelighet');
+
+const MONTHS = ['Januar','Februar','Mars','April','Mai','Juni','Juli','August','September','Oktober','November','Desember'];
+const DAYS = ['Man','Tir','Ons','Tor','Fre','Lør','Søn'];
+const AVATARCOLORS = ['#185FA5','#0F6E56','#993C1D','#993556','#3B6D11','#534AB7'];
+const DOT_COLORS = { ledig:'#1D9E75', kanskje:'#EF9F27', opptatt:'#E24B4A' };
+
+let today = new Date();
+let curYear = today.getFullYear(), curMonth = today.getMonth();
+let data = {};
+let selected = new Set();
+
+onValue(dataRef, snap => {
+  data = snap.val() || {};
+  renderAll();
+});
+
+function getName() { return document.getElementById('nameInput').value.trim(); }
+
+window.changeMonth = function(d) {
+  curMonth += d;
+  if (curMonth > 11) { curMonth = 0; curYear++; }
+  if (curMonth < 0) { curMonth = 11; curYear--; }
+  renderCal();
+};
+
+function dayKey(y, m, d) {
+  return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+
+function toggleSelect(key) {
+  if (!getName()) { alert('Skriv inn navnet ditt først!'); return; }
+  if (selected.has(key)) selected.delete(key);
+  else selected.add(key);
+  updateSelectionUI();
+  renderCal();
+}
+
+function updateSelectionUI() {
+  const n = selected.size;
+  const bar = document.getElementById('selBar');
+  const panel = document.getElementById('statusPanel');
+  if (n === 0) {
+    bar.textContent = '';
+    panel.style.display = 'none';
+    hideKommentar();
+  } else {
+    const sorted = [...selected].sort();
+    const labels = sorted.map(k => {
+      const p = k.split('-');
+      return `${parseInt(p[2])}. ${MONTHS[parseInt(p[1])-1].slice(0,3).toLowerCase()}`;
+    }).join(', ');
+    bar.textContent = `${n} dag${n > 1 ? 'er' : ''} valgt: ${labels}`;
+    panel.style.display = 'block';
+    document.getElementById('panelTitle').textContent =
+      n === 1 ? 'Hva gjelder for denne dagen?' : 'Hva gjelder for disse dagene?';
+  }
+}
+
+window.applyStatus = function(status) {
+  const name = getName();
+  if (!name) return;
+  const updates = {};
+  selected.forEach(key => {
+    updates[key] = updates[key] || {};
+    set(ref(db, `tilgjengelighet/${key}/${name}`), { status, comment: '' });
+  });
+  clearSelection();
+};
+
+window.showKommentar = function() {
+  document.getElementById('commentInput').value = '';
+  document.getElementById('commentField').style.display = 'block';
+};
+
+window.hideKommentar = function() {
+  document.getElementById('commentField').style.display = 'none';
+};
+
+window.applyKanskje = function() {
+  const name = getName();
+  const comment = document.getElementById('commentInput').value.trim();
+  selected.forEach(key => {
+    set(ref(db, `tilgjengelighet/${key}/${name}`), { status: 'kanskje', comment });
+  });
+  clearSelection();
+};
+
+window.clearSelection = function() {
+  selected.clear();
+  hideKommentar();
+  updateSelectionUI();
+  renderCal();
+};
+
+function allPeople() {
+  const s = new Set();
+  Object.values(data).forEach(day => Object.keys(day).forEach(n => s.add(n)));
+  return s;
+}
+
+function getDayStatus(key) {
+  const people = allPeople();
+  if (people.size === 0 || !data[key]) return null;
+  const entries = data[key];
+  let allGood = true, allGoodOrMaybe = true, hasYes = false, hasMaybe = false;
+  for (const name of people) {
+    if (!entries[name]) { allGood = false; allGoodOrMaybe = false; break; }
+    const s = entries[name].status;
+    if (s === 'opptatt') { allGood = false; allGoodOrMaybe = false; break; }
+    if (s === 'ledig') hasYes = true;
+    if (s === 'kanskje') { allGood = false; hasMaybe = true; }
+  }
+  if (allGood && hasYes) return 'all-ledig';
+  if (allGoodOrMaybe && (hasYes || hasMaybe)) return 'all-maybe';
+  return null;
+}
+
+function renderCal() {
+  document.getElementById('month-label').textContent = `${MONTHS[curMonth]} ${curYear}`;
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+  DAYS.forEach(d => {
+    const h = document.createElement('div');
+    h.className = 'dh'; h.textContent = d; grid.appendChild(h);
+  });
+  const first = new Date(curYear, curMonth, 1);
+  let startDow = first.getDay(); startDow = startDow === 0 ? 6 : startDow - 1;
+  const dim = new Date(curYear, curMonth + 1, 0).getDate();
+  for (let i = 0; i < startDow; i++) {
+    const e = document.createElement('div'); e.className = 'day empty'; grid.appendChild(e);
+  }
+  for (let d = 1; d <= dim; d++) {
+    const key = dayKey(curYear, curMonth, d);
+    const isToday = d === today.getDate() && curMonth === today.getMonth() && curYear === today.getFullYear();
+    const isPast = new Date(curYear, curMonth, d) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const ds = getDayStatus(key);
+    const isSel = selected.has(key);
+    let cls = 'day';
+    if (isToday) cls += ' today';
+    if (isPast) cls += ' past';
+    if (ds && !isSel) cls += ' ' + ds;
+    if (isSel) cls += ' selected';
+    const cell = document.createElement('div');
+    cell.className = cls;
+    const num = document.createElement('div');
+    num.className = 'dnum'; num.textContent = d; cell.appendChild(num);
+    if (!isSel) {
+      if (ds === 'all-ledig') {
+        const lbl = document.createElement('div');
+        lbl.className = 'winner-label'; lbl.textContent = 'alle kan'; cell.appendChild(lbl);
+      } else if (ds === 'all-maybe') {
+        const lbl = document.createElement('div');
+        lbl.className = 'winner-label maybe'; lbl.textContent = 'alle muligens'; cell.appendChild(lbl);
+      }
+    }
+    if (data[key]) {
+      const dots = document.createElement('div'); dots.className = 'dots';
+      Object.entries(data[key]).forEach(([nm, v]) => {
+        const dot = document.createElement('div'); dot.className = 'dot';
+        dot.style.background = DOT_COLORS[v.status] || '#888';
+        dot.title = `${nm}: ${v.status}${v.comment ? ' – ' + v.comment : ''}`;
+        dots.appendChild(dot);
+      });
+      cell.appendChild(dots);
+    }
+    cell.onclick = () => toggleSelect(key);
+    grid.appendChild(cell);
+  }
+}
+
+function formatDate(key) {
+  const [y, m, d] = key.split('-');
+  return `${parseInt(d)}. ${MONTHS[parseInt(m)-1].slice(0,3).toLowerCase()}`;
+}
+
+function renderBestDays() {
+  const bd = document.getElementById('bestDays');
+  const green = [], yellow = [];
+  Object.keys(data).forEach(key => {
+    const ds = getDayStatus(key);
+    if (ds === 'all-ledig') green.push(key);
+    else if (ds === 'all-maybe') yellow.push(key);
+  });
+  green.sort(); yellow.sort();
+  const people = allPeople();
+  if (people.size < 2 && green.length === 0 && yellow.length === 0) { bd.innerHTML = ''; return; }
+  let html = `<p class="section-title">Beste dager</p>`;
+  if (green.length === 0 && yellow.length === 0) {
+    html += `<p style="font-size:13px;color:#888;font-style:italic">Ingen dager der alle kan ennå.</p>`;
+  } else {
+    green.forEach(key => {
+      html += `<div class="best-card all"><div class="bc-title all">&#128197; ${formatDate(key)}</div><div class="bc-sub all">Alle kan: ${[...people].join(', ')}</div></div>`;
+    });
+    yellow.forEach(key => {
+      html += `<div class="best-card maybe"><div class="bc-title maybe">&#128197; ${formatDate(key)}</div><div class="bc-sub maybe">Alle svar er ledig/kanskje: ${[...people].join(', ')}</div></div>`;
+    });
+  }
+  bd.innerHTML = html;
+}
+
+function renderSummary() {
+  const summary = document.getElementById('summary');
+  const allP = {};
+  Object.entries(data).forEach(([key, persons]) => {
+    Object.entries(persons).forEach(([name, v]) => {
+      if (!allP[name]) allP[name] = { ledig: [], kanskje: [], opptatt: [] };
+      allP[name][v.status].push({ key, comment: v.comment });
+    });
+  });
+  if (Object.keys(allP).length === 0) {
+    summary.innerHTML = '<p style="font-size:13px;color:#888;font-style:italic">Ingen har lagt til tilgjengelighet ennå.</p>';
+    return;
+  }
+  let html = '';
+  Object.entries(allP).forEach(([name, s], i) => {
+    const col = AVATARCOLORS[i % AVATARCOLORS.length];
+    const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    const chips = [
+      ...s.ledig.map(x => `<span class="chip ledig">${formatDate(x.key)}</span>`),
+      ...s.kanskje.map(x => `<span class="chip kanskje">${formatDate(x.key)}${x.comment ? ' – ' + x.comment : ''}</span>`),
+      ...s.opptatt.map(x => `<span class="chip opptatt">${formatDate(x.key)}</span>`)
+    ].join('');
+    html += `<div class="person-row">
+      <div class="avatar" style="background:${col}22;color:${col}">${initials}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:600">${name}</div>
+        <div class="chips">${chips || '<span style="font-size:12px;color:#888">Ingen dager ennå</span>'}</div>
+      </div>
+    </div>`;
+  });
+  summary.innerHTML = html;
+}
+
+function renderAll() {
+  renderCal();
+  renderBestDays();
+  renderSummary();
+}
+
+renderAll();
+</script>
+</body>
+</html>
